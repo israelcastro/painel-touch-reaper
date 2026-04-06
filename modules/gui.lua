@@ -107,24 +107,7 @@ function Gui.Loop()
       local c_dour = reaper.ImGui_ColorConvertDouble4ToU32(1.00, 1.00, 0.30, 0.9)
       local c_normal = (State.botao2_ativo and (math.floor(os.clock() * 4) % 2 == 0)) and c_dour or c_verm
       Gui.ImGui_ButtonTouch(State.ctx, "btn7", "SOMENTE CLICK", largura, altura, c_normal, State.cor_amarelo, function()
-        State.botao2_ativo = not State.botao2_ativo
-        State.fade_start_time = reaper.time_precise()
-        if State.botao2_ativo then
-          State.volumes_originais = {}
-          for i = 0, reaper.CountTracks(0) - 1 do
-            local tr = reaper.GetTrack(0, i)
-            local _, name = reaper.GetSetMediaTrackInfo_String(tr, "P_NAME", "", false)
-            local vol = reaper.GetMediaTrackInfo_Value(tr, "D_VOL")
-            State.volumes_originais[i] = vol
-            if (name or ""):upper() ~= "02-CLICK" then
-              reaper.SetMediaTrackInfo_Value(tr, "D_VOL", vol)
-            end
-          end
-          State.fading_out, State.fading_in = true, false
-        else
-          State.fade_start_time = reaper.time_precise()
-          State.fading_in, State.fading_out = true, false
-        end
+        Actions.toggle_somente_click()
       end)
     end
     reaper.ImGui_SameLine(State.ctx, nil, padding)
@@ -143,6 +126,53 @@ function Gui.Loop()
           reaper.SetMediaTrackInfo_Value(track_vocal, "B_MUTE", muteState == 0 and 1 or 0)
         end
       end)
+    end
+    reaper.ImGui_SameLine(State.ctx, nil, padding)
+    do
+      local c_sos = State.sos_ativo and State.cor_vermelho or State.cor_botao_padrao
+      Gui.ImGui_ButtonTouch(State.ctx, "btn_sos", "SOS", largura, altura, c_sos, cor_hover_sup, Actions.btn_sos)
+      
+      if State.sos_ativo then
+        reaper.ImGui_SameLine(State.ctx, nil, padding)
+        local cur_beat = 1
+
+        if reaper.GetPlayState() & 1 == 1 then
+          if State.sos_saindo then
+            local elapsed = reaper.time_precise() - State.sos_start_saindo_time
+            local bpm = reaper.TimeMap_GetDividedBpmAtTime(0, reaper.GetPlayPosition())
+            if bpm <= 0 then bpm = 120 end
+            local beats_elapsed = elapsed * (bpm / 60.0)
+            local remaining = 4.0 - beats_elapsed
+            if remaining < 0 then remaining = 0 end
+            cur_beat = 4 - math.floor(remaining)
+            if cur_beat < 1 then cur_beat = 1 end
+            if cur_beat > 4 then cur_beat = 4 end
+          else
+            local retval, _, _, _, _ = reaper.TimeMap2_timeToBeats(0, reaper.GetPlayPosition())
+            cur_beat = math.floor(retval) + 1
+          end
+        else
+          local bpm = reaper.TimeMap_GetDividedBpmAtTime(0, reaper.GetCursorPosition())
+          if bpm <= 0 then bpm = 120 end
+          local elapsed = reaper.time_precise() - State.sos_start_time
+          local beats_elapsed = elapsed * (bpm / 60.0)
+          cur_beat = math.floor(beats_elapsed) % 4 + 1
+        end
+
+        local bg_color = (cur_beat == 1) and State.cor_vermelho or State.cor_branco
+        local text_color = (cur_beat == 1) and State.cor_branco or State.cor_preto
+
+        reaper.ImGui_PushStyleColor(State.ctx, reaper.ImGui_Col_Button(), bg_color)
+        reaper.ImGui_PushStyleColor(State.ctx, reaper.ImGui_Col_ButtonHovered(), bg_color)
+        reaper.ImGui_PushStyleColor(State.ctx, reaper.ImGui_Col_ButtonActive(), bg_color)
+        reaper.ImGui_PushStyleColor(State.ctx, reaper.ImGui_Col_Text(), text_color)
+        reaper.ImGui_PushFont(State.ctx, State.font_huge)
+        
+        reaper.ImGui_Button(State.ctx, tostring(cur_beat) .. "##sos_metro", largura, altura)
+        
+        reaper.ImGui_PopFont(State.ctx)
+        reaper.ImGui_PopStyleColor(State.ctx, 4)
+      end
     end
 
     -------------------------------------------------------
@@ -401,7 +431,7 @@ function Gui.Loop()
       end
     end
 
-    Actions.process_fades()
+    Actions.tick()
 
     local t_norm = (tocando - g_ini) / g_len
     if t_norm < 0 then t_norm = 0 elseif t_norm > 1 then t_norm = 1 end

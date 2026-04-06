@@ -28,6 +28,11 @@ State.fading_in = false
 State.hold_ativo = false
 State.play_state_anterior = reaper.GetPlayState()
 State.autoplay_ativo = false
+State.sos_ativo = false
+State.sos_start_time = 0
+State.sos_saindo = false
+State.sos_start_saindo_time = 0
+State.sos_saindo_duration = 0
 
 -- track info visual
 State.nome_track_info_visual = "INFORMAÇÃO VISUAL"
@@ -81,6 +86,8 @@ State.ctx = reaper.ImGui_CreateContext('Painel touch Na Janela Band', 0)
 local font_bold_path = reaper.GetResourcePath() .. "/Scripts/Fontes/Montserrat-Bold.ttf"
 State.font_bold = reaper.ImGui_CreateFont(font_bold_path, 16)
 reaper.ImGui_Attach(State.ctx, State.font_bold)
+State.font_huge = reaper.ImGui_CreateFont(font_bold_path, 40)
+reaper.ImGui_Attach(State.ctx, State.font_huge)
 
 -- Cores Base
 State.cor_vermelho   = reaper.ImGui_ColorConvertDouble4ToU32(1, 0.2, 0.2, 1)
