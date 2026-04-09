@@ -174,11 +174,64 @@ function Actions.process_fades()
   end
 end
 
+function Actions.trigger_troca()
+  local curr_proj = reaper.EnumProjects(-1, "")
+  local idx = 0
+  local curr_idx = -1
+  while true do
+    local p = reaper.EnumProjects(idx, "")
+    if not p then break end
+    if p == curr_proj then curr_idx = idx end
+    idx = idx + 1
+  end
+
+  if curr_idx ~= -1 then
+    local next_proj = reaper.EnumProjects(curr_idx + 1, "")
+    if next_proj then
+      reaper.SelectProjectInstance(next_proj)
+      reaper.SetEditCurPos(0, true, false)
+      if reaper.GetPlayState() & 1 == 0 then
+        reaper.Main_OnCommand(1007, 0) -- Play
+      end
+    end
+  end
+end
+
 function Actions.tick()
   Actions.process_fades()
   if State.sos_saindo and (reaper.GetPlayState() & 1 == 1) then
     local elapsed = reaper.time_precise() - State.sos_start_saindo_time
     if elapsed >= State.sos_saindo_duration then Actions.execute_sos_jump() end
+  end
+
+  local play_state = reaper.GetPlayState()
+  local is_playing = (play_state & 1 == 1)
+
+  if is_playing then
+    local tocando = reaper.GetPlayPosition()
+    local curr_rgn
+    for i, reg in ipairs(State.regioes) do
+      if tocando >= reg.pos and tocando < reg.rgnend then
+        curr_rgn = reg
+        break
+      end
+    end
+
+    if curr_rgn then
+      if curr_rgn.name:upper() == "TROCA" or curr_rgn.name:upper():match("TROCA") then
+        local rgn_id = "regiao_" .. tostring(curr_rgn.pos)
+        if State.troca_triggered_region_id ~= rgn_id then
+          if State.autoplay_ativo then
+            State.troca_triggered_region_id = rgn_id
+            Actions.trigger_troca()
+          end
+        end
+      else
+        State.troca_triggered_region_id = nil
+      end
+    else
+      State.troca_triggered_region_id = nil
+    end
   end
 end
 

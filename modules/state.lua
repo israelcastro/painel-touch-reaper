@@ -33,6 +33,7 @@ State.sos_start_time = 0
 State.sos_saindo = false
 State.sos_start_saindo_time = 0
 State.sos_saindo_duration = 0
+State.troca_triggered_region_id = nil
 
 -- track info visual
 State.nome_track_info_visual = "INFORMAÇÃO VISUAL"
