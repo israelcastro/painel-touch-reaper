@@ -5,6 +5,19 @@ local Actions = require("modules.actions")
 
 local Gui = {}
 
+function Gui.PushFont(ctx, font, size)
+  if not font then return end
+  local ok = pcall(reaper.ImGui_PushFont, ctx, font, size or 16)
+  if not ok then
+    pcall(reaper.ImGui_PushFont, ctx, font)
+  end
+end
+
+function Gui.PopFont(ctx)
+  if not ctx then return end
+  pcall(reaper.ImGui_PopFont, ctx)
+end
+
 function Gui.ImGui_ButtonTouch(ctx, id, label, w, h, cor_normal, cor_ativo, acao)
   local agora = reaper.time_precise()
   local cor = cor_normal
@@ -19,9 +32,9 @@ function Gui.ImGui_ButtonTouch(ctx, id, label, w, h, cor_normal, cor_ativo, acao
   reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonHovered(), cor)
   reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonActive(), cor)
   reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Text(), State.cor_branco)
-  reaper.ImGui_PushFont(ctx, State.font_bold)
+  Gui.PushFont(ctx, State.font_bold, 16)
   local clicked = reaper.ImGui_Button(ctx, label, w, h)
-  reaper.ImGui_PopFont(ctx)
+  Gui.PopFont(ctx)
   reaper.ImGui_PopStyleColor(ctx, 4)
 
   if reaper.ImGui_BeginPopupContextItem(ctx, "popup_" .. id) then
@@ -199,11 +212,11 @@ function Gui.Loop()
         reaper.ImGui_PushStyleColor(State.ctx, reaper.ImGui_Col_ButtonHovered(), bg_color)
         reaper.ImGui_PushStyleColor(State.ctx, reaper.ImGui_Col_ButtonActive(), bg_color)
         reaper.ImGui_PushStyleColor(State.ctx, reaper.ImGui_Col_Text(), text_color)
-        reaper.ImGui_PushFont(State.ctx, State.font_huge)
+        Gui.PushFont(State.ctx, State.font_huge, 40)
         
         reaper.ImGui_Button(State.ctx, tostring(cur_beat) .. "##sos_metro", largura, altura)
         
-        reaper.ImGui_PopFont(State.ctx)
+        Gui.PopFont(State.ctx)
         reaper.ImGui_PopStyleColor(State.ctx, 4)
       end
     end
@@ -448,9 +461,9 @@ function Gui.Loop()
         reaper.ImGui_PushStyleColor(State.ctx, reaper.ImGui_Col_ButtonHovered(), cor_btn)
         reaper.ImGui_PushStyleColor(State.ctx, reaper.ImGui_Col_ButtonActive(), cor_btn)
         reaper.ImGui_PushStyleColor(State.ctx, reaper.ImGui_Col_Text(), reaper.ImGui_ColorConvertDouble4ToU32(0,0,0,1))
-        reaper.ImGui_PushFont(State.ctx, State.font_bold)
+        Gui.PushFont(State.ctx, State.font_bold, 16)
         local clicked = reaper.ImGui_Button(State.ctx, nome .. "##" .. id, w, altura_botoes)
-        reaper.ImGui_PopFont(State.ctx)
+        Gui.PopFont(State.ctx)
         reaper.ImGui_PopStyleColor(State.ctx, 4)
 
         if clicked then

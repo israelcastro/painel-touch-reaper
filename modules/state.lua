@@ -106,10 +106,25 @@ State.carregar_config()
 -- Contexto ImGui e Fontes
 State.ctx = reaper.ImGui_CreateContext('Painel touch Na Janela Band', 0)
 local font_bold_path = reaper.GetResourcePath() .. "/Scripts/Fontes/Montserrat-Bold.ttf"
-State.font_bold = reaper.ImGui_CreateFont(font_bold_path, 16)
-reaper.ImGui_Attach(State.ctx, State.font_bold)
-State.font_huge = reaper.ImGui_CreateFont(font_bold_path, 40)
-reaper.ImGui_Attach(State.ctx, State.font_huge)
+
+local function safe_create_font(path, sz)
+  local f
+  if reaper.ImGui_CreateFont then
+    local ok, res = pcall(reaper.ImGui_CreateFont, path, sz)
+    if ok and res then f = res end
+  end
+  if not f and reaper.ImGui_CreateFont then
+    local ok, res = pcall(reaper.ImGui_CreateFont, 'sans-serif', sz)
+    if ok and res then f = res end
+  end
+  if f and reaper.ImGui_Attach then
+    pcall(reaper.ImGui_Attach, State.ctx, f)
+  end
+  return f
+end
+
+State.font_bold = safe_create_font(font_bold_path, 16)
+State.font_huge = safe_create_font(font_bold_path, 40)
 
 -- Cores Base
 State.cor_vermelho   = reaper.ImGui_ColorConvertDouble4ToU32(1, 0.2, 0.2, 1)
