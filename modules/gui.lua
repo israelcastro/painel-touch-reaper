@@ -6,10 +6,11 @@ local Actions = require("modules.actions")
 local Gui = {}
 
 local is_imgui_v9 = false
-if reaper.ImGui_GetVersion then
-  local ver = reaper.ImGui_GetVersion()
-  local major, minor = ver:match("(%d+)%.(%d+)")
-  if major and (tonumber(major) > 0 or tonumber(minor) >= 9) then
+if reaper.ImGui_Font_GetSize ~= nil then
+  is_imgui_v9 = true
+elseif reaper.ImGui_NumericVersion then
+  local num_ver = reaper.ImGui_NumericVersion()
+  if num_ver and num_ver >= 0x090000 then
     is_imgui_v9 = true
   end
 end
