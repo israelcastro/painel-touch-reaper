@@ -4,6 +4,9 @@
 -- @about
 --   Painel touch interativo para controle do REAPER.
 --   Suporta Windows e macOS.
+-- @depends
+--   reaper_imgui >= 0.8
+--   js_reascriptapi >= 1.000
 -- @provides
 --   [main] . > Painel touch scroll - 1.0.lua
 --   modules/*.lua
