@@ -5,20 +5,25 @@ local Actions = require("modules.actions")
 
 local Gui = {}
 
-local pushfont_nparams = 2
-if debug.getinfo and reaper.ImGui_PushFont then
-  local info = debug.getinfo(reaper.ImGui_PushFont, "u")
-  if info and info.nparams and info.nparams > 0 then
-    pushfont_nparams = info.nparams
-  end
-end
+local font_args = nil
 
 function Gui.PushFont(ctx, font, size)
   if not font then return false end
   if reaper.ImGui_ValidatePtr and not reaper.ImGui_ValidatePtr(font, 'ImGui_Font*') then
     return false
   end
-  if pushfont_nparams >= 3 then
+
+  if font_args == nil then
+    local ok = pcall(reaper.ImGui_PushFont, ctx, font)
+    if ok then
+      font_args = 2
+      return true
+    else
+      font_args = 3
+    end
+  end
+
+  if font_args == 3 then
     return pcall(reaper.ImGui_PushFont, ctx, font, size or 16)
   else
     return pcall(reaper.ImGui_PushFont, ctx, font)
