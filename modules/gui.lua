@@ -5,20 +5,24 @@ local Actions = require("modules.actions")
 
 local Gui = {}
 
+local pushfont_nparams = 2
+if debug.getinfo and reaper.ImGui_PushFont then
+  local info = debug.getinfo(reaper.ImGui_PushFont, "u")
+  if info and info.nparams and info.nparams > 0 then
+    pushfont_nparams = info.nparams
+  end
+end
+
 function Gui.PushFont(ctx, font, size)
   if not font then return false end
   if reaper.ImGui_ValidatePtr and not reaper.ImGui_ValidatePtr(font, 'ImGui_Font*') then
     return false
   end
-  -- Tenta 3 argumentos (ReaImGui v0.9+)
-  local ok = pcall(reaper.ImGui_PushFont, ctx, font, size or 16)
-  if ok then return true end
-
-  -- Fallback para 2 argumentos (ReaImGui v0.8)
-  local ok2 = pcall(reaper.ImGui_PushFont, ctx, font)
-  if ok2 then return true end
-
-  return false
+  if pushfont_nparams >= 3 then
+    return pcall(reaper.ImGui_PushFont, ctx, font, size or 16)
+  else
+    return pcall(reaper.ImGui_PushFont, ctx, font)
+  end
 end
 
 function Gui.PopFont(ctx, pushed)
