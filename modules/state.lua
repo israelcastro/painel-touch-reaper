@@ -105,11 +105,26 @@ State.carregar_config()
 
 -- Contexto ImGui e Fontes
 State.ctx = reaper.ImGui_CreateContext('Painel touch Na Janela Band', 0)
-local font_bold_path = reaper.GetResourcePath() .. "/Scripts/Fontes/Montserrat-Bold.ttf"
+
+local script_path = debug.getinfo(1, "S").source:match([[^@?(.*[\/])[^\/]-$]])
+local function file_exists(path)
+  if not path or path == "" then return false end
+  local f = io.open(path, "r")
+  if f then f:close() return true end
+  return false
+end
+
+local font_bold_path = (script_path and script_path .. "Fontes/Montserrat-Bold.ttf") or ""
+if not file_exists(font_bold_path) then
+  font_bold_path = reaper.GetResourcePath() .. "/Scripts/Painel Touch/Fontes/Montserrat-Bold.ttf"
+end
+if not file_exists(font_bold_path) then
+  font_bold_path = reaper.GetResourcePath() .. "/Scripts/Fontes/Montserrat-Bold.ttf"
+end
 
 local function safe_create_font(path, sz)
   local f
-  if reaper.ImGui_CreateFont then
+  if path and file_exists(path) and reaper.ImGui_CreateFont then
     local ok, res = pcall(reaper.ImGui_CreateFont, path, sz)
     if ok and res and (not reaper.ImGui_ValidatePtr or reaper.ImGui_ValidatePtr(res, 'ImGui_Font*')) then
       f = res

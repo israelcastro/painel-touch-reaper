@@ -11,6 +11,7 @@
 --   [main] . > Painel touch scroll - 1.0.lua
 --   modules/*.lua
 --   modules/shortcuts/*.lua
+--   Fontes/*
 
 local script_path = debug.getinfo(1,"S").source:match([[^@?(.*[\/])[^\/]-$]])
 if script_path then

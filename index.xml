@@ -23,6 +23,8 @@
         <source file="modules/shortcuts/btn11.lua">https://github.com/israelcastro/painel-touch-reaper/raw/MERGE-DE-FUNCOES/modules/shortcuts/btn11.lua</source>
         <source file="modules/shortcuts/btn_curta.lua">https://github.com/israelcastro/painel-touch-reaper/raw/MERGE-DE-FUNCOES/modules/shortcuts/btn_curta.lua</source>
         <source file="modules/shortcuts/btn_pedal.lua">https://github.com/israelcastro/painel-touch-reaper/raw/MERGE-DE-FUNCOES/modules/shortcuts/btn_pedal.lua</source>
+        <source file="Fontes/Montserrat-Bold.ttf">https://github.com/israelcastro/painel-touch-reaper/raw/MERGE-DE-FUNCOES/Fontes/Montserrat-Bold.ttf</source>
+        <source file="Fontes/LOGO_JANELA_BAND_BRANCA-01.png">https://github.com/israelcastro/painel-touch-reaper/raw/MERGE-DE-FUNCOES/Fontes/LOGO_JANELA_BAND_BRANCA-01.png</source>
       </version>
     </reapack>
   </category>
