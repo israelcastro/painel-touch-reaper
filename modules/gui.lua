@@ -5,28 +5,20 @@ local Actions = require("modules.actions")
 
 local Gui = {}
 
-local is_imgui_v9 = false
-if reaper.ImGui_Font_GetSize ~= nil then
-  is_imgui_v9 = true
-elseif reaper.ImGui_NumericVersion then
-  local num_ver = reaper.ImGui_NumericVersion()
-  if num_ver and num_ver >= 0x090000 then
-    is_imgui_v9 = true
-  end
-end
-
 function Gui.PushFont(ctx, font, size)
   if not font then return false end
   if reaper.ImGui_ValidatePtr and not reaper.ImGui_ValidatePtr(font, 'ImGui_Font*') then
     return false
   end
-  if is_imgui_v9 then
-    local ok = pcall(reaper.ImGui_PushFont, ctx, font, size or 16)
-    return ok
-  else
-    local ok = pcall(reaper.ImGui_PushFont, ctx, font)
-    return ok
-  end
+  -- Tenta 3 argumentos (ReaImGui v0.9+)
+  local ok = pcall(reaper.ImGui_PushFont, ctx, font, size or 16)
+  if ok then return true end
+
+  -- Fallback para 2 argumentos (ReaImGui v0.8)
+  local ok2 = pcall(reaper.ImGui_PushFont, ctx, font)
+  if ok2 then return true end
+
+  return false
 end
 
 function Gui.PopFont(ctx, pushed)
