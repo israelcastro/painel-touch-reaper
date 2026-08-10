@@ -4,13 +4,33 @@ Painel touch interativo para controle do REAPER. Compatível com **Windows** e *
 
 ---
 
-## 🚀 Como Instalar via ReaPack (Recomendado)
+## 🧩 Extensões Obrigatórias do REAPER
 
-O **ReaPack** é o gerenciador de pacotes oficial do REAPER. Ele permite instalar e manter o script atualizado automaticamente no **Windows** e **macOS**.
+Para que este script funcione corretamente no Windows ou no macOS, você **precisa obrigatoriamente** ter as seguintes extensões instaladas no REAPER:
 
-### Passo 1: Instalar a extensão ReaPack no REAPER (se ainda não tiver)
-1. Acesse [reapack.com](https://reapack.com) e baixe o instalador adequado para o seu sistema (Windows ou Mac).
-2. Siga as instruções do site para instalar no REAPER e reinicie o REAPER.
+| Extensão | Função no Script | Como Instalar |
+| :--- | :--- | :--- |
+| **SWS / S&M Extension** | Manipulação de rotinas internas e listas de projetos | Baixar instalador em [sws-extension.org](https://www.sws-extension.org) |
+| **ReaImGui** | Renderização da interface gráfica do painel | Via ReaPack (`Extensions > ReaPack > Browse packages > ReaImGui`) |
+| **JS_ReaScriptAPI** | Suporte a mouse e reposicionamento em tela touch | Via ReaPack (`Extensions > ReaPack > Browse packages > js_reascriptapi`) |
+| **ReaPack** | Gerenciador de pacotes para instalar scripts e bibliotecas | Baixar instalador em [reapack.com](https://reapack.com) |
+
+> [!IMPORTANT]
+> Caso alguma dessas extensões não esteja instalada, a interface do Painel Touch não irá abrir ou apresentará erro de API ausente ao ser executada.
+
+---
+
+## 🚀 Como Instalar o Script via ReaPack (Recomendado)
+
+O **ReaPack** permite instalar e manter o script atualizado automaticamente no **Windows** e **macOS**.
+
+### Passo 1: Instalar o ReaPack, ReaImGui, JS_ReaScriptAPI e SWS
+1. Baixe e instale o **SWS Extension** em [sws-extension.org](https://www.sws-extension.org).
+2. Baixe e instale o **ReaPack** em [reapack.com](https://reapack.com).
+3. No REAPER, abra `Extensions` > `ReaPack` > `Browse packages...`, busque e instale:
+   - `ReaImGui: ReaScript API for Dear ImGui`
+   - `js_ReaScriptAPI: API functions for ReaScripts`
+4. Clique em **Apply** e reinicie o REAPER.
 
 ---
 
@@ -30,10 +50,10 @@ https://github.com/israelcastro/painel-touch-reaper/raw/main/index.xml
 ### Passo 3: Instalar o Script
 1. Vá em **Extensions** > **ReaPack** > **Browse packages...**
 2. Na barra de busca, digite: `Painel Touch Scroll`
-3. Clique com o botão direito sobre o item **Painel Touch Scroll** e escolha **Install v1.0**.
+3. Clique com o botão direito sobre o item **Painel Touch Scroll** e escolha **Install**.
 4. Clique no botão **Apply** no canto inferior direito.
 
-Pronto! O script foi baixado com todas as suas dependências e já está registrado automaticamente na sua **Action List** (`Actions` > `Show action list...`).
+Pronto! O script foi baixado com todas as suas dependências e já estará disponível na sua **Action List** (`Actions` > `Show action list...`).
 
 ---
 
