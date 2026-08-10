@@ -5,24 +5,24 @@
       <author>Israel Castro</author>
       <about><![CDATA[Painel touch interativo para controle do REAPER. Suporta Windows e macOS.]]></about>
       <version name="1.0" author="Israel Castro" time="2026-08-10T11:00:00Z">
-        <source main="main">https://github.com/israelcastro/painel-touch-reaper/raw/MERGE-DE-FUNCOES/Painel%20touch%20scroll%20-%201.0.lua</source>
-        <source file="modules/actions.lua">https://github.com/israelcastro/painel-touch-reaper/raw/MERGE-DE-FUNCOES/modules/actions.lua</source>
-        <source file="modules/gui.lua">https://github.com/israelcastro/painel-touch-reaper/raw/MERGE-DE-FUNCOES/modules/gui.lua</source>
-        <source file="modules/reaper_data.lua">https://github.com/israelcastro/painel-touch-reaper/raw/MERGE-DE-FUNCOES/modules/reaper_data.lua</source>
-        <source file="modules/state.lua">https://github.com/israelcastro/painel-touch-reaper/raw/MERGE-DE-FUNCOES/modules/state.lua</source>
-        <source file="modules/shortcuts/btn1.lua">https://github.com/israelcastro/painel-touch-reaper/raw/MERGE-DE-FUNCOES/modules/shortcuts/btn1.lua</source>
-        <source file="modules/shortcuts/btn2.lua">https://github.com/israelcastro/painel-touch-reaper/raw/MERGE-DE-FUNCOES/modules/shortcuts/btn2.lua</source>
-        <source file="modules/shortcuts/btn3.lua">https://github.com/israelcastro/painel-touch-reaper/raw/MERGE-DE-FUNCOES/modules/shortcuts/btn3.lua</source>
-        <source file="modules/shortcuts/btn4.lua">https://github.com/israelcastro/painel-touch-reaper/raw/MERGE-DE-FUNCOES/modules/shortcuts/btn4.lua</source>
-        <source file="modules/shortcuts/btn5.lua">https://github.com/israelcastro/painel-touch-reaper/raw/MERGE-DE-FUNCOES/modules/shortcuts/btn5.lua</source>
-        <source file="modules/shortcuts/btn6.lua">https://github.com/israelcastro/painel-touch-reaper/raw/MERGE-DE-FUNCOES/modules/shortcuts/btn6.lua</source>
-        <source file="modules/shortcuts/btn7.lua">https://github.com/israelcastro/painel-touch-reaper/raw/MERGE-DE-FUNCOES/modules/shortcuts/btn7.lua</source>
-        <source file="modules/shortcuts/btn8.lua">https://github.com/israelcastro/painel-touch-reaper/raw/MERGE-DE-FUNCOES/modules/shortcuts/btn8.lua</source>
-        <source file="modules/shortcuts/btn9.lua">https://github.com/israelcastro/painel-touch-reaper/raw/MERGE-DE-FUNCOES/modules/shortcuts/btn9.lua</source>
-        <source file="modules/shortcuts/btn10.lua">https://github.com/israelcastro/painel-touch-reaper/raw/MERGE-DE-FUNCOES/modules/shortcuts/btn10.lua</source>
-        <source file="modules/shortcuts/btn11.lua">https://github.com/israelcastro/painel-touch-reaper/raw/MERGE-DE-FUNCOES/modules/shortcuts/btn11.lua</source>
-        <source file="modules/shortcuts/btn_curta.lua">https://github.com/israelcastro/painel-touch-reaper/raw/MERGE-DE-FUNCOES/modules/shortcuts/btn_curta.lua</source>
-        <source file="modules/shortcuts/btn_pedal.lua">https://github.com/israelcastro/painel-touch-reaper/raw/MERGE-DE-FUNCOES/modules/shortcuts/btn_pedal.lua</source>
+        <source main="main">Painel touch scroll - 1.0.lua</source>
+        <source file="modules/actions.lua">modules/actions.lua</source>
+        <source file="modules/gui.lua">modules/gui.lua</source>
+        <source file="modules/reaper_data.lua">modules/reaper_data.lua</source>
+        <source file="modules/state.lua">modules/state.lua</source>
+        <source file="modules/shortcuts/btn1.lua">modules/shortcuts/btn1.lua</source>
+        <source file="modules/shortcuts/btn2.lua">modules/shortcuts/btn2.lua</source>
+        <source file="modules/shortcuts/btn3.lua">modules/shortcuts/btn3.lua</source>
+        <source file="modules/shortcuts/btn4.lua">modules/shortcuts/btn4.lua</source>
+        <source file="modules/shortcuts/btn5.lua">modules/shortcuts/btn5.lua</source>
+        <source file="modules/shortcuts/btn6.lua">modules/shortcuts/btn6.lua</source>
+        <source file="modules/shortcuts/btn7.lua">modules/shortcuts/btn7.lua</source>
+        <source file="modules/shortcuts/btn8.lua">modules/shortcuts/btn8.lua</source>
+        <source file="modules/shortcuts/btn9.lua">modules/shortcuts/btn9.lua</source>
+        <source file="modules/shortcuts/btn10.lua">modules/shortcuts/btn10.lua</source>
+        <source file="modules/shortcuts/btn11.lua">modules/shortcuts/btn11.lua</source>
+        <source file="modules/shortcuts/btn_curta.lua">modules/shortcuts/btn_curta.lua</source>
+        <source file="modules/shortcuts/btn_pedal.lua">modules/shortcuts/btn_pedal.lua</source>
       </version>
     </reapack>
   </category>
