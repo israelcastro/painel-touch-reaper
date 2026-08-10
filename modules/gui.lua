@@ -23,6 +23,30 @@ function Gui.ImGui_ButtonTouch(ctx, id, label, w, h, cor_normal, cor_ativo, acao
   local clicked = reaper.ImGui_Button(ctx, label, w, h)
   reaper.ImGui_PopFont(ctx)
   reaper.ImGui_PopStyleColor(ctx, 4)
+
+  if reaper.ImGui_BeginPopupContextItem(ctx, "popup_" .. id) then
+    local cmd_id = State.shortcut_cmds and State.shortcut_cmds[id]
+    if cmd_id then
+      local section = reaper.SectionFromUniqueID(0)
+      local count = reaper.CountActionShortcuts(section, cmd_id)
+      
+      if reaper.ImGui_MenuItem(ctx, "Atalho: (incluir)") then
+        reaper.DoActionShortcutDialog(reaper.GetMainHwnd(), section, cmd_id, -1)
+      end
+      
+      reaper.ImGui_BeginDisabled(ctx, count == 0)
+      if reaper.ImGui_MenuItem(ctx, "Excluir") then
+        for idx = count - 1, 0, -1 do
+          reaper.DeleteActionShortcut(section, cmd_id, idx)
+        end
+      end
+      reaper.ImGui_EndDisabled(ctx)
+    else
+      reaper.ImGui_Text(ctx, "Erro: Comando não registrado")
+    end
+    reaper.ImGui_EndPopup(ctx)
+  end
+
   if clicked then
     if not State.usar_dois_cliques then
       acao()
@@ -129,8 +153,17 @@ function Gui.Loop()
     end
     reaper.ImGui_SameLine(State.ctx, nil, padding)
     do
-      local c_sos = State.sos_ativo and State.cor_vermelho or State.cor_botao_padrao
-      Gui.ImGui_ButtonTouch(State.ctx, "btn_sos", "SOS", largura, altura, c_sos, cor_hover_sup, Actions.btn_sos)
+      -- local c_sos = State.sos_ativo and State.cor_vermelho or State.cor_botao_padrao
+      -- Gui.ImGui_ButtonTouch(State.ctx, "btn_sos", "SOS", largura, altura, c_sos, cor_hover_sup, Actions.btn_sos)
+      
+      -- reaper.ImGui_SameLine(State.ctx, nil, padding)
+      local c_curta = State.versao_curta_ativo and State.cor_verde or State.cor_botao_padrao
+      Gui.ImGui_ButtonTouch(State.ctx, "btn_curta", "VERSÃO CURTA", largura, altura, c_curta, cor_hover_sup, function()
+        State.versao_curta_ativo = not State.versao_curta_ativo
+      end)
+      
+      reaper.ImGui_SameLine(State.ctx, nil, padding)
+      Gui.ImGui_ButtonTouch(State.ctx, "btn_pedal", "PEDAL", largura, altura, State.cor_botao_padrao, cor_hover_sup, Actions.btn_pedal)
       
       if State.sos_ativo then
         reaper.ImGui_SameLine(State.ctx, nil, padding)
@@ -199,7 +232,9 @@ function Gui.Loop()
           local rx1, ry1 = ix, pos_y_badge
           local rx2, ry2 = ix + iw, pos_y_badge + State.altura_info_lane
 
-          reaper.ImGui_DrawList_AddRectFilled(draw_list, rx1, ry1, rx2, ry2, it.cor, 4)
+          local is_skipping = State.versao_curta_ativo and (it.texto or ""):match("%*$") ~= nil
+          local cor_final = is_skipping and reaper.ImGui_ColorConvertDouble4ToU32(0.2, 0.2, 0.2, 1) or it.cor
+          reaper.ImGui_DrawList_AddRectFilled(draw_list, rx1, ry1, rx2, ry2, cor_final, 4)
           reaper.ImGui_DrawList_AddRect(draw_list, rx1, ry1, rx2, ry2, reaper.ImGui_ColorConvertDouble4ToU32(1,1,1,0.08), 4, 0, 1)
 
           local is_current_song = (tocando_now >= it.pos and tocando_now < it.fim)
@@ -246,6 +281,18 @@ function Gui.Loop()
       if reaper.ImGui_Button(State.ctx, lbl_seg, 160, 26) then
         State.seguir_reproducao = not State.seguir_reproducao
       end
+
+      reaper.ImGui_SameLine(State.ctx, nil, 12)
+      local is_blocked = Actions.is_autoplay_blocked_for_project(current_project_id)
+      local lbl_auto = is_blocked and "Autoplay no Proj: BLOQUEADO" or "Autoplay no Proj: LIBERADO"
+      local cor_btn = is_blocked and State.cor_vermelho or State.cor_verde
+      reaper.ImGui_PushStyleColor(State.ctx, reaper.ImGui_Col_Button(), cor_btn)
+      reaper.ImGui_PushStyleColor(State.ctx, reaper.ImGui_Col_ButtonHovered(), cor_btn)
+      reaper.ImGui_PushStyleColor(State.ctx, reaper.ImGui_Col_ButtonActive(), cor_btn)
+      if reaper.ImGui_Button(State.ctx, lbl_auto, 240, 26) then
+        Actions.toggle_project_autoplay(current_project_id)
+      end
+      reaper.ImGui_PopStyleColor(State.ctx, 3)
     end
 
     -------------------------------------------------------
@@ -299,7 +346,7 @@ function Gui.Loop()
       if State.regiao_clicada_id then
         local i_sel = tonumber(State.regiao_clicada_id:match("regiao_(%d+)"))
         local rr = i_sel and State.regioes[i_sel]
-        if (not rr) or rr.color ~= cor_grupo_atual or rr.rgnend <= g_ini + eps or rr.pos >= g_fim - eps then
+        if (not rr) or rr.color ~= cor_grupo_atual or rr.rgnend <= g_ini + eps or rr.pos >= g_fim - eps or (tocando >= rr.pos and tocando < rr.rgnend) then
           State.regiao_clicada_id = nil
         end
       end
@@ -327,8 +374,17 @@ function Gui.Loop()
       if ultima and (State.hold_ativo or State.autoplay_ativo) then
         if tocando >= (ultima.rgnend - 0.3) and tocando < ultima.rgnend then
           if State.autoplay_ativo then
-            reaper.Main_OnCommand(40861, 0)
-            reaper.defer(function() reaper.SetEditCurPos(0, true, false); reaper.Main_OnCommand(1007, 0) end)
+            local current_blocks = Actions.is_autoplay_blocked_for_project(current_project_id)
+            local next_proj = Actions.get_next_project(current_project_id)
+            local next_blocks = next_proj and Actions.is_autoplay_blocked_for_project(next_proj) or false
+            
+            if current_blocks or next_blocks then
+              reaper.Main_OnCommand(40861, 0)
+              reaper.defer(function() reaper.SetEditCurPos(0, true, false) end)
+            else
+              reaper.Main_OnCommand(40861, 0)
+              reaper.defer(function() reaper.SetEditCurPos(0, true, false); reaper.Main_OnCommand(1007, 0) end)
+            end
           elseif State.hold_ativo then
             reaper.Main_OnCommand(40861, 0)
             reaper.defer(function() reaper.SetEditCurPos(0, true, false) end)
@@ -383,7 +439,9 @@ function Gui.Loop()
         local min_w  = (not State.visao_completa) and State.largura_btn_musica or State.largura_btn_completa
         local w = math.max(base_w, min_w)
 
+        local is_skipping = State.versao_curta_ativo and nome:match("%*$") ~= nil
         local cor_btn = piscar and reaper.ImGui_ColorConvertDouble4ToU32(1, 0.2, 0.2, 1) or (mostrar_vermelho_solido and reaper.ImGui_ColorConvertDouble4ToU32(1, 0.2, 0.2, 1) or cor_rg)
+        if is_skipping then cor_btn = reaper.ImGui_ColorConvertDouble4ToU32(0.15, 0.15, 0.15, 1) end
 
         reaper.ImGui_SetCursorScreenPos(State.ctx, x, y)
         reaper.ImGui_PushStyleColor(State.ctx, reaper.ImGui_Col_Button(), cor_btn)

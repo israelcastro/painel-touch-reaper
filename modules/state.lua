@@ -19,6 +19,7 @@ State.regiao_clicada_id = nil
 State.last_waveform_width = nil
 State.altura_waveform = 250
 State.last_project_id = reaper.EnumProjects(-1, "")
+State.last_project_id_actions = reaper.EnumProjects(-1, "")
 State.loop_ativo = false
 State.volumes_originais = {}
 State.fade_duration = 1
@@ -33,8 +34,29 @@ State.sos_start_time = 0
 State.sos_saindo = false
 State.sos_start_saindo_time = 0
 State.sos_saindo_duration = 0
-
+State.troca_triggered_region_id = nil
+State.versao_curta_ativo = false
+State.pad_triggered_region_id = nil
+State.pad_stop_pending = false
+State.pad_stop_target_measure = nil
+State.pad_fading_out = false
+State.pad_fade_start_time = nil
+State.pad_proj_fade = nil
+State.pad_master_tr = nil
+State.pad_master_vol = 1.0
+State.pad_fade_duration = 3.0
 -- track info visual
+State.original_seekmodes = reaper.SNM_GetIntConfigVar("seekmodes", -1)
+if State.original_seekmodes ~= -1 then
+  reaper.SNM_SetIntConfigVar("seekmodes", State.original_seekmodes | 0x3F)
+end
+
+reaper.atexit(function()
+  if State.original_seekmodes ~= -1 then
+    reaper.SNM_SetIntConfigVar("seekmodes", State.original_seekmodes)
+  end
+end)
+
 State.nome_track_info_visual = "INFORMAÇÃO VISUAL"
 State.altura_info_lane = 36
 State.gap_info_lane = 8
