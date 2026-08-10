@@ -23,6 +23,30 @@ function Gui.ImGui_ButtonTouch(ctx, id, label, w, h, cor_normal, cor_ativo, acao
   local clicked = reaper.ImGui_Button(ctx, label, w, h)
   reaper.ImGui_PopFont(ctx)
   reaper.ImGui_PopStyleColor(ctx, 4)
+
+  if reaper.ImGui_BeginPopupContextItem(ctx, "popup_" .. id) then
+    local cmd_id = State.shortcut_cmds and State.shortcut_cmds[id]
+    if cmd_id then
+      local section = reaper.SectionFromUniqueID(0)
+      local count = reaper.CountActionShortcuts(section, cmd_id)
+      
+      if reaper.ImGui_MenuItem(ctx, "Atalho: (incluir)") then
+        reaper.DoActionShortcutDialog(reaper.GetMainHwnd(), section, cmd_id, -1)
+      end
+      
+      reaper.ImGui_BeginDisabled(ctx, count == 0)
+      if reaper.ImGui_MenuItem(ctx, "Excluir") then
+        for idx = count - 1, 0, -1 do
+          reaper.DeleteActionShortcut(section, cmd_id, idx)
+        end
+      end
+      reaper.ImGui_EndDisabled(ctx)
+    else
+      reaper.ImGui_Text(ctx, "Erro: Comando não registrado")
+    end
+    reaper.ImGui_EndPopup(ctx)
+  end
+
   if clicked then
     if not State.usar_dois_cliques then
       acao()
@@ -137,6 +161,9 @@ function Gui.Loop()
       Gui.ImGui_ButtonTouch(State.ctx, "btn_curta", "VERSÃO CURTA", largura, altura, c_curta, cor_hover_sup, function()
         State.versao_curta_ativo = not State.versao_curta_ativo
       end)
+      
+      reaper.ImGui_SameLine(State.ctx, nil, padding)
+      Gui.ImGui_ButtonTouch(State.ctx, "btn_pedal", "PEDAL", largura, altura, State.cor_botao_padrao, cor_hover_sup, Actions.btn_pedal)
       
       if State.sos_ativo then
         reaper.ImGui_SameLine(State.ctx, nil, padding)
@@ -254,6 +281,18 @@ function Gui.Loop()
       if reaper.ImGui_Button(State.ctx, lbl_seg, 160, 26) then
         State.seguir_reproducao = not State.seguir_reproducao
       end
+
+      reaper.ImGui_SameLine(State.ctx, nil, 12)
+      local is_blocked = Actions.is_autoplay_blocked_for_project(current_project_id)
+      local lbl_auto = is_blocked and "Autoplay no Proj: BLOQUEADO" or "Autoplay no Proj: LIBERADO"
+      local cor_btn = is_blocked and State.cor_vermelho or State.cor_verde
+      reaper.ImGui_PushStyleColor(State.ctx, reaper.ImGui_Col_Button(), cor_btn)
+      reaper.ImGui_PushStyleColor(State.ctx, reaper.ImGui_Col_ButtonHovered(), cor_btn)
+      reaper.ImGui_PushStyleColor(State.ctx, reaper.ImGui_Col_ButtonActive(), cor_btn)
+      if reaper.ImGui_Button(State.ctx, lbl_auto, 240, 26) then
+        Actions.toggle_project_autoplay(current_project_id)
+      end
+      reaper.ImGui_PopStyleColor(State.ctx, 3)
     end
 
     -------------------------------------------------------
@@ -335,8 +374,17 @@ function Gui.Loop()
       if ultima and (State.hold_ativo or State.autoplay_ativo) then
         if tocando >= (ultima.rgnend - 0.3) and tocando < ultima.rgnend then
           if State.autoplay_ativo then
-            reaper.Main_OnCommand(40861, 0)
-            reaper.defer(function() reaper.SetEditCurPos(0, true, false); reaper.Main_OnCommand(1007, 0) end)
+            local current_blocks = Actions.is_autoplay_blocked_for_project(current_project_id)
+            local next_proj = Actions.get_next_project(current_project_id)
+            local next_blocks = next_proj and Actions.is_autoplay_blocked_for_project(next_proj) or false
+            
+            if current_blocks or next_blocks then
+              reaper.Main_OnCommand(40861, 0)
+              reaper.defer(function() reaper.SetEditCurPos(0, true, false) end)
+            else
+              reaper.Main_OnCommand(40861, 0)
+              reaper.defer(function() reaper.SetEditCurPos(0, true, false); reaper.Main_OnCommand(1007, 0) end)
+            end
           elseif State.hold_ativo then
             reaper.Main_OnCommand(40861, 0)
             reaper.defer(function() reaper.SetEditCurPos(0, true, false) end)

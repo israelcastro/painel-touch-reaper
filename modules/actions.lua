@@ -7,6 +7,14 @@ function Actions.btn_play_stop()
   if state & 1 == 1 then reaper.Main_OnCommand(1016, 0) else reaper.Main_OnCommand(1007, 0) end
 end
 
+function Actions.btn_pedal()
+  reaper.Main_OnCommand(1016, 0) -- Stop
+  Actions.set_loop(false)
+  State.regiao_clicada_id = nil
+  reaper.SetEditCurPos(0, true, false)
+  reaper.Main_OnCommand(1007, 0) -- Play
+end
+
 function Actions.btn_alerta_hold()
   State.hold_ativo = not State.hold_ativo
   if State.hold_ativo then State.autoplay_ativo = false end
@@ -170,6 +178,70 @@ function Actions.process_fades()
   end
 end
 
+function Actions.is_autoplay_blocked_for_project(proj)
+  if not proj then return false end
+  
+  -- 1. Check Project ExtState
+  local retval, val = reaper.GetProjExtState(proj, "PainelTouch", "NoAutoplay")
+  if retval and retval > 0 then
+    if val == "1" then
+      return true
+    elseif val == "0" then
+      return false
+    end
+  end
+  
+  -- 2. Check filename/path
+  local path = ""
+  local idx = 0
+  while true do
+    local p, p_path = reaper.EnumProjects(idx, "")
+    if not p then break end
+    if p == proj then
+      path = p_path
+      break
+    end
+    idx = idx + 1
+  end
+  
+  if path and path ~= "" then
+    local filename = path:match("[^\\/]+$") or ""
+    local fn_lower = filename:lower()
+    if fn_lower:find("noautoplay") or fn_lower:find("no_autoplay") or fn_lower:find("no%-autoplay") then
+      return true
+    end
+  end
+  
+  return false
+end
+
+function Actions.get_next_project(proj)
+  if not proj then return nil end
+  local idx = 0
+  local curr_idx = -1
+  while true do
+    local p = reaper.EnumProjects(idx, "")
+    if not p then break end
+    if p == proj then curr_idx = idx end
+    idx = idx + 1
+  end
+  if curr_idx ~= -1 then
+    return reaper.EnumProjects(curr_idx + 1, "")
+  end
+  return nil
+end
+
+function Actions.toggle_project_autoplay(proj)
+  if not proj then return end
+  local is_blocked = Actions.is_autoplay_blocked_for_project(proj)
+  if is_blocked then
+    reaper.SetProjExtState(proj, "PainelTouch", "NoAutoplay", "0")
+  else
+    reaper.SetProjExtState(proj, "PainelTouch", "NoAutoplay", "1")
+  end
+  reaper.MarkProjectDirty(proj)
+end
+
 function Actions.trigger_troca()
   local curr_proj = reaper.EnumProjects(-1, "")
   local idx = 0
@@ -184,10 +256,15 @@ function Actions.trigger_troca()
   if curr_idx ~= -1 then
     local next_proj = reaper.EnumProjects(curr_idx + 1, "")
     if next_proj then
+      local current_blocks = Actions.is_autoplay_blocked_for_project(curr_proj)
+      local next_blocks = Actions.is_autoplay_blocked_for_project(next_proj)
+      
       reaper.SelectProjectInstance(next_proj)
       reaper.SetEditCurPos(0, true, false)
-      if reaper.GetPlayState() & 1 == 0 then
-        reaper.Main_OnCommand(1007, 0) -- Play
+      if not current_blocks and not next_blocks then
+        if reaper.GetPlayState() & 1 == 0 then
+          reaper.Main_OnCommand(1007, 0) -- Play
+        end
       end
     end
   end
@@ -312,16 +389,94 @@ function Actions.process_pad_fade()
   end
 end
 
+function Actions.init_shortcuts()
+  local main_path = reaper.GetResourcePath() .. "/Scripts/Painel Touch"
+  local shortcuts_dir = main_path .. "/modules/shortcuts"
+  reaper.RecursiveCreateDirectory(shortcuts_dir, 0)
+  
+  State.shortcut_cmds = {}
+  
+  local buttons_id = {
+    "btn1", "btn2", "btn3", "btn4", "btn5", "btn6", "btn7", "btn8", "btn_curta", "btn_pedal", "btn9", "btn10", "btn11"
+  }
+  
+  for i, id in ipairs(buttons_id) do
+    local file_path = shortcuts_dir .. "/" .. id .. ".lua"
+    local f = io.open(file_path, "w")
+    if f then
+      f:write('-- Painel Touch Shortcut Helper\n')
+      f:write('reaper.SetExtState("PainelTouchShortcuts", "trigger_' .. id .. '", "1", false)\n')
+      f:close()
+    end
+    
+    local commit = (i == #buttons_id)
+    local cmd_id = reaper.AddRemoveReaScript(true, 0, file_path, commit)
+    if cmd_id and cmd_id > 0 then
+      State.shortcut_cmds[id] = cmd_id
+    end
+  end
+end
+
+function Actions.trigger_button_by_id(id)
+  if id == "btn1" then Actions.btn_play_stop()
+  elseif id == "btn2" then Actions.btn_alerta_hold()
+  elseif id == "btn3" then Actions.btn_alerta_autoplay()
+  elseif id == "btn4" then Actions.btn_anterior()
+  elseif id == "btn5" then Actions.btn_proximo()
+  elseif id == "btn6" then Actions.btn_loop()
+  elseif id == "btn7" then Actions.toggle_somente_click()
+  elseif id == "btn8" then
+    local track_vocal
+    for i = 0, reaper.CountTracks(0) - 1 do
+      local tr = reaper.GetTrack(0, i)
+      local _, name = reaper.GetSetMediaTrackInfo_String(tr, "P_NAME", "", false)
+      local name_upper = (name or ""):upper():gsub("Ê","E")
+      if name_upper:find("VOZ REFERENCIA") then track_vocal = tr; break end
+    end
+    if track_vocal then
+      local muteState = reaper.GetMediaTrackInfo_Value(track_vocal, "B_MUTE")
+      reaper.SetMediaTrackInfo_Value(track_vocal, "B_MUTE", muteState == 0 and 1 or 0)
+    end
+  elseif id == "btn_curta" then
+    State.versao_curta_ativo = not State.versao_curta_ativo
+  elseif id == "btn_pedal" then
+    Actions.btn_pedal()
+  elseif id == "btn9" then
+    local cmd = reaper.NamedCommandLookup("_SWS_PROJLIST_OPEN")
+    if cmd and cmd > 0 then reaper.Main_OnCommand(cmd, 0) end
+  elseif id == "btn10" then
+    local cmd = reaper.NamedCommandLookup("_SWS_PROJLISTSAVE")
+    if cmd and cmd > 0 then reaper.Main_OnCommand(cmd, 0) end
+  elseif id == "btn11" then
+    local cmd = reaper.NamedCommandLookup("_SWS_PROJLISTSOPEN")
+    if cmd and cmd > 0 then reaper.Main_OnCommand(cmd, 0) end
+  end
+end
+
 function Actions.tick()
   Actions.process_fades()
   Actions.process_pad_fade()
+  
+  -- Poll shortcuts
+  if State.shortcut_cmds then
+    local buttons_id = {
+      "btn1", "btn2", "btn3", "btn4", "btn5", "btn6", "btn7", "btn8", "btn_curta", "btn_pedal", "btn9", "btn10", "btn11"
+    }
+    for _, id in ipairs(buttons_id) do
+      local val = reaper.GetExtState("PainelTouchShortcuts", "trigger_" .. id)
+      if val == "1" then
+        reaper.SetExtState("PainelTouchShortcuts", "trigger_" .. id, "", false)
+        Actions.trigger_button_by_id(id)
+      end
+    end
+  end
   
   local play_state = reaper.GetPlayState()
   local is_playing = (play_state & 1 == 1)
 
   local curr_proj = reaper.EnumProjects(-1, "")
-  if State.last_project_id ~= curr_proj then
-    State.last_project_id = curr_proj
+  if State.last_project_id_actions ~= curr_proj then
+    State.last_project_id_actions = curr_proj
     local _, p_path = reaper.EnumProjects(-1, "")
     if p_path and not p_path:upper():match("PAD CONTINUO") then
       State.pad_stop_pending = true

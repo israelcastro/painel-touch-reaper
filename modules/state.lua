@@ -19,6 +19,7 @@ State.regiao_clicada_id = nil
 State.last_waveform_width = nil
 State.altura_waveform = 250
 State.last_project_id = reaper.EnumProjects(-1, "")
+State.last_project_id_actions = reaper.EnumProjects(-1, "")
 State.loop_ativo = false
 State.volumes_originais = {}
 State.fade_duration = 1

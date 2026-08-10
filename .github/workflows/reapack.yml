@@ -1,0 +1,23 @@
+name: ReaPack Index
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - MERGE-DE-FUNCOES
+
+permissions:
+  contents: write
+
+jobs:
+  build-index:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build index.xml
+        uses: cfillion/reapack-index-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
