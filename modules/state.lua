@@ -111,11 +111,15 @@ local function safe_create_font(path, sz)
   local f
   if reaper.ImGui_CreateFont then
     local ok, res = pcall(reaper.ImGui_CreateFont, path, sz)
-    if ok and res then f = res end
+    if ok and res and (not reaper.ImGui_ValidatePtr or reaper.ImGui_ValidatePtr(res, 'ImGui_Font*')) then
+      f = res
+    end
   end
   if not f and reaper.ImGui_CreateFont then
     local ok, res = pcall(reaper.ImGui_CreateFont, 'sans-serif', sz)
-    if ok and res then f = res end
+    if ok and res and (not reaper.ImGui_ValidatePtr or reaper.ImGui_ValidatePtr(res, 'ImGui_Font*')) then
+      f = res
+    end
   end
   if f and reaper.ImGui_Attach then
     pcall(reaper.ImGui_Attach, State.ctx, f)
