@@ -20,40 +20,39 @@ Para que este script funcione corretamente no Windows ou no macOS, você **preci
 
 ---
 
-## 🚀 Como Instalar via ReaPack em Repositório Privado
+## 🚀 Como Instalar o Script via ReaPack (Recomendado)
 
-Como o repositório é privado, você precisará de um **Token de Acesso Pessoal (PAT)** do GitHub para que o ReaPack possa acessar os arquivos nos seus computadores (Windows ou Mac).
+O **ReaPack** permite instalar e manter o script atualizado automaticamente no **Windows** e **macOS**.
 
-### Passo 1: Gerar o Token no GitHub (Fazer apenas 1 vez)
-1. No GitHub, clique na sua foto de perfil (canto superior direito) e vá em **Settings**.
-2. No menu lateral esquerdo, selecione **Developer Settings** (no final da lista).
-3. Vá em **Personal access tokens** > **Tokens (classic)**.
-4. Clique em **Generate new token (classic)**.
-5. Digite um nome (ex: `ReaPack Painel Touch`) e em *Expiration* escolha `No expiration` (ou o prazo desejado).
-6. Marque a opção **`repo`** (Full control of private repositories).
-7. Clique no botão verde **Generate token** e copie a chave gerada (ela começa com `ghp_...`).
+### Passo 1: Instalar o ReaPack, ReaImGui, JS_ReaScriptAPI e SWS
+1. Baixe e instale o **SWS Extension** em [sws-extension.org](https://www.sws-extension.org).
+2. Baixe e instale o **ReaPack** em [reapack.com](https://reapack.com).
+3. No REAPER, abra `Extensions` > `ReaPack` > `Browse packages...`, busque e instale:
+   - `ReaImGui: ReaScript API for Dear ImGui`
+   - `js_ReaScriptAPI: API functions for ReaScripts`
+4. Clique em **Apply** e reinicie o REAPER.
 
 ---
 
-### Passo 2: Importar a URL no ReaPack
-1. No REAPER (seja no Windows ou Mac), vá em **Extensions** > **ReaPack** > **Import repositories...**
-2. Cole a URL no seguinte formato (substituindo `SEU_TOKEN_AQUI` pelo token copiado):
+### Passo 2: Adicionar este Repositório ao ReaPack
+1. No REAPER, abra o menu superior: **Extensions** > **ReaPack** > **Import repositories...**
+2. No campo que surgir, cole a seguinte URL:
 
 ```text
-https://SEU_TOKEN_AQUI@raw.githubusercontent.com/israelcastro/painel-touch-reaper/MERGE-DE-FUNCOES/index.xml
+https://github.com/israelcastro/painel-touch-reaper/raw/MERGE-DE-FUNCOES/index.xml
 ```
 
 3. Clique em **OK**.
 
 ---
 
-### Passo 3: Instalar o Script no REAPER
+### Passo 3: Instalar o Script
 1. Vá em **Extensions** > **ReaPack** > **Browse packages...**
 2. Na barra de busca, digite: `Painel Touch Scroll`
 3. Clique com o botão direito sobre o item **Painel Touch Scroll** e escolha **Install**.
-4. Clique em **Apply** no canto inferior direito.
+4. Clique no botão **Apply** no canto inferior direito.
 
-Pronto! O script e todos os seus módulos serão instalados automaticamente e estarão prontos na sua **Action List** (`Actions` > `Show action list...`).
+Pronto! O script foi baixado com todas as suas dependências e já estará disponível na sua **Action List** (`Actions` > `Show action list...`).
 
 ---
 
