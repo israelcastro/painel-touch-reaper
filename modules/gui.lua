@@ -5,17 +5,27 @@ local Actions = require("modules.actions")
 
 local Gui = {}
 
+local is_imgui_v9 = false
+if reaper.ImGui_GetVersion then
+  local ver = reaper.ImGui_GetVersion()
+  local major, minor = ver:match("(%d+)%.(%d+)")
+  if major and (tonumber(major) > 0 or tonumber(minor) >= 9) then
+    is_imgui_v9 = true
+  end
+end
+
 function Gui.PushFont(ctx, font, size)
   if not font then return end
-  local ok = pcall(reaper.ImGui_PushFont, ctx, font, size or 16)
-  if not ok then
-    pcall(reaper.ImGui_PushFont, ctx, font)
+  if is_imgui_v9 then
+    reaper.ImGui_PushFont(ctx, font, size or 16)
+  else
+    reaper.ImGui_PushFont(ctx, font)
   end
 end
 
 function Gui.PopFont(ctx)
   if not ctx then return end
-  pcall(reaper.ImGui_PopFont, ctx)
+  reaper.ImGui_PopFont(ctx)
 end
 
 function Gui.ImGui_ButtonTouch(ctx, id, label, w, h, cor_normal, cor_ativo, acao)
