@@ -13,6 +13,18 @@
 --   modules/shortcuts/*.lua
 --   Fontes/*
 
+-- Garante compatibilidade de versão com o ReaImGui
+if reaper.ImGui_GetBuiltinPath then
+  local imgui_path = reaper.ImGui_GetBuiltinPath()
+  if imgui_path and imgui_path ~= "" then
+    package.path = imgui_path .. "/?.lua;" .. package.path
+    local ok, imgui_loader = pcall(require, 'imgui')
+    if ok and type(imgui_loader) == 'function' then
+      pcall(imgui_loader, '0.8.7')
+    end
+  end
+end
+
 local script_path = debug.getinfo(1,"S").source:match([[^@?(.*[\/])[^\/]-$]])
 if script_path then
   package.path = script_path .. "?.lua;" .. package.path

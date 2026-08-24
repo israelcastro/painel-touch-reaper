@@ -5,35 +5,21 @@ local Actions = require("modules.actions")
 
 local Gui = {}
 
-local font_args = nil
-
 function Gui.PushFont(ctx, font, size)
-  if not font then return false end
+  if not font or not ctx then return false end
   if reaper.ImGui_ValidatePtr and not reaper.ImGui_ValidatePtr(font, 'ImGui_Font*') then
     return false
   end
-
-  if font_args == nil then
-    local ok = pcall(reaper.ImGui_PushFont, ctx, font)
-    if ok then
-      font_args = 2
-      return true
-    else
-      font_args = 3
-    end
-  end
-
-  if font_args == 3 then
-    return pcall(reaper.ImGui_PushFont, ctx, font, size or 16)
-  else
-    return pcall(reaper.ImGui_PushFont, ctx, font)
-  end
+  if not reaper.ImGui_PushFont then return false end
+  local ok = pcall(reaper.ImGui_PushFont, ctx, font)
+  return ok
 end
 
 function Gui.PopFont(ctx, pushed)
-  if pushed == false then return end
-  if not ctx then return end
-  pcall(reaper.ImGui_PopFont, ctx)
+  if pushed == false or not ctx then return end
+  if reaper.ImGui_PopFont then
+    pcall(reaper.ImGui_PopFont, ctx)
+  end
 end
 
 function Gui.ImGui_ButtonTouch(ctx, id, label, w, h, cor_normal, cor_ativo, acao)

@@ -104,6 +104,17 @@ end
 State.carregar_config()
 
 -- Contexto ImGui e Fontes
+if reaper.ImGui_GetBuiltinPath then
+  local imgui_path = reaper.ImGui_GetBuiltinPath()
+  if imgui_path and imgui_path ~= "" then
+    package.path = imgui_path .. "/?.lua;" .. package.path
+    local ok, imgui_loader = pcall(require, 'imgui')
+    if ok and type(imgui_loader) == 'function' then
+      pcall(imgui_loader, '0.8.7')
+    end
+  end
+end
+
 State.ctx = reaper.ImGui_CreateContext('Painel touch Na Janela Band', 0)
 
 local script_path = debug.getinfo(1, "S").source:match([[^@?(.*[\/])[^\/]-$]])
@@ -114,17 +125,25 @@ local function file_exists(path)
   return false
 end
 
-local font_bold_path = (script_path and script_path .. "Fontes/Montserrat-Bold.ttf") or ""
-if not file_exists(font_bold_path) then
-  font_bold_path = reaper.GetResourcePath() .. "/Scripts/Painel Touch/Fontes/Montserrat-Bold.ttf"
-end
-if not file_exists(font_bold_path) then
-  font_bold_path = reaper.GetResourcePath() .. "/Scripts/Fontes/Montserrat-Bold.ttf"
+local font_bold_path = ""
+local possible_paths = {
+  script_path and (script_path .. "Fontes/Montserrat-Bold.ttf"),
+  script_path and (script_path .. "../Fontes/Montserrat-Bold.ttf"),
+  reaper.GetResourcePath() .. "/Scripts/Painel Touch/Fontes/Montserrat-Bold.ttf",
+  reaper.GetResourcePath() .. "/Scripts/painel-touch-reaper/Fontes/Montserrat-Bold.ttf",
+  reaper.GetResourcePath() .. "/Scripts/Fontes/Montserrat-Bold.ttf",
+}
+
+for _, p in ipairs(possible_paths) do
+  if file_exists(p) then
+    font_bold_path = p
+    break
+  end
 end
 
 local function safe_create_font(path, sz)
   local f
-  if path and file_exists(path) and reaper.ImGui_CreateFont then
+  if path and path ~= "" and file_exists(path) and reaper.ImGui_CreateFont then
     local ok, res = pcall(reaper.ImGui_CreateFont, path, sz)
     if ok and res and (not reaper.ImGui_ValidatePtr or reaper.ImGui_ValidatePtr(res, 'ImGui_Font*')) then
       f = res
@@ -136,8 +155,12 @@ local function safe_create_font(path, sz)
       f = res
     end
   end
-  if f and reaper.ImGui_Attach then
-    pcall(reaper.ImGui_Attach, State.ctx, f)
+  if f then
+    if reaper.ImGui_Attach then
+      pcall(reaper.ImGui_Attach, State.ctx, f)
+    elseif reaper.ImGui_AttachFont then
+      pcall(reaper.ImGui_AttachFont, State.ctx, f)
+    end
   end
   return f
 end
