@@ -389,6 +389,311 @@ function Actions.process_pad_fade()
   end
 end
 
+local function obter_texto_item(item)
+  if not item then return "" end
+  local text = ""
+
+  if reaper.ULT_GetMediaItemNote then
+    local ok, res = pcall(reaper.ULT_GetMediaItemNote, item)
+    if ok and res and res ~= "" then text = res end
+  end
+
+  if text == "" then
+    local ok, notes = reaper.GetSetMediaItemInfo_String(item, "P_NOTES", "", false)
+    if ok and notes and notes ~= "" then text = notes end
+  end
+
+  if text == "" then
+    local take = reaper.GetActiveTake(item)
+    if take then
+      local ok, tkname = reaper.GetSetMediaItemTakeInfo_String(take, "P_NAME", "", false)
+      if ok and tkname and tkname ~= "" then text = tkname end
+    end
+  end
+
+  text = text:gsub("^%s+", ""):gsub("%s+$", "")
+  return text
+end
+
+local function obter_info_visual_no_pos(tr_info, pos)
+  if not tr_info then return "" end
+  local itemCount = reaper.CountTrackMediaItems(tr_info)
+  local texto_encontrado = ""
+  local menor_dist = 999999
+
+  for i = 0, itemCount - 1 do
+    local item = reaper.GetTrackMediaItem(tr_info, i)
+    local item_pos = reaper.GetMediaItemInfo_Value(item, "D_POSITION")
+    local item_len = reaper.GetMediaItemInfo_Value(item, "D_LENGTH")
+    local item_fim = item_pos + item_len
+
+    if pos >= item_pos - 0.5 and pos <= item_fim + 0.5 then
+      local txt = obter_texto_item(item)
+      if txt ~= "" then return txt end
+    end
+
+    local dist = math.abs(pos - item_pos)
+    if dist < menor_dist then
+      menor_dist = dist
+      local txt = obter_texto_item(item)
+      if txt ~= "" then texto_encontrado = txt end
+    end
+  end
+
+  return texto_encontrado
+end
+
+local function normalizar_texto(str)
+  str = (str or ""):upper()
+  str = str:gsub("Ç","C"):gsub("Á","A"):gsub("Ã","A"):gsub("Â","A"):gsub("É","E"):gsub("Ê","E"):gsub("Í","I"):gsub("Ó","O"):gsub("Ô","O"):gsub("Ú","U")
+  return str
+end
+
+local function criar_pasta_no_topo(parent_name, keywords, insert_idx)
+  local parent_name_norm = normalizar_texto(parent_name)
+  
+  -- 1. Localiza uma track PAI existente somente se for uma pasta limpa/vazia sem itens de mídia (num_items == 0)
+  local parent_tr = nil
+  for i = 0, reaper.CountTracks(0) - 1 do
+    local tr = reaper.GetTrack(0, i)
+    local _, name = reaper.GetSetMediaTrackInfo_String(tr, "P_NAME", "", false)
+    local n_norm = normalizar_texto(name)
+    local is_name_match = (n_norm == parent_name_norm or n_norm:match("^0%d%-" .. parent_name_norm))
+    local num_items = reaper.CountTrackMediaItems(tr)
+    
+    if is_name_match and num_items == 0 then
+      parent_tr = tr
+      break
+    end
+  end
+
+  -- 2. Coleta todas as tracks filhas que correspondem às palavras-chave (qualquer outra faixa que não seja a track PAI vazia)
+  local child_tracks = {}
+  for i = 0, reaper.CountTracks(0) - 1 do
+    local tr = reaper.GetTrack(0, i)
+    if tr ~= parent_tr then
+      local _, name = reaper.GetSetMediaTrackInfo_String(tr, "P_NAME", "", false)
+      local n_norm = normalizar_texto(name)
+      local bateu = false
+      for _, kw in ipairs(keywords) do
+        local kw_norm = normalizar_texto(kw)
+        if n_norm:find(kw_norm, 1, true) then
+          bateu = true
+          break
+        end
+      end
+      if bateu then
+        table.insert(child_tracks, tr)
+      end
+    end
+  end
+
+  if #child_tracks == 0 then
+    return insert_idx
+  end
+
+  -- 3. Se a faixa PAI limpa não existia, cria uma nova faixa pai no topo
+  if not parent_tr then
+    reaper.InsertTrackAtIndex(insert_idx, true)
+    parent_tr = reaper.GetTrack(0, insert_idx)
+    reaper.GetSetMediaTrackInfo_String(parent_tr, "P_NAME", parent_name, true)
+  else
+    for k = 0, reaper.CountTracks(0) - 1 do
+      reaper.SetTrackSelected(reaper.GetTrack(0, k), (reaper.GetTrack(0, k) == parent_tr))
+    end
+    reaper.ReorderSelectedTracks(insert_idx, 0)
+  end
+
+  -- Recalcula o índice atual do parent_tr
+  local parent_idx = insert_idx
+  for i = 0, reaper.CountTracks(0) - 1 do
+    if reaper.GetTrack(0, i) == parent_tr then
+      parent_idx = i
+      break
+    end
+  end
+
+  -- 3. Move todas as tracks filhas para logo após a track pai
+  for k = 0, reaper.CountTracks(0) - 1 do
+    reaper.SetTrackSelected(reaper.GetTrack(0, k), false)
+  end
+  for _, tr in ipairs(child_tracks) do
+    reaper.SetTrackSelected(tr, true)
+  end
+
+  reaper.ReorderSelectedTracks(parent_idx + 1, 0)
+
+  -- Recalcula parent_idx novamente após mover as filhas
+  for i = 0, reaper.CountTracks(0) - 1 do
+    if reaper.GetTrack(0, i) == parent_tr then
+      parent_idx = i
+      break
+    end
+  end
+
+  -- 4. Configura a estrutura de pasta do REAPER no topo do projeto
+  reaper.SetMediaTrackInfo_Value(parent_tr, "I_FOLDERDEPTH", 1)
+
+  for j = 1, #child_tracks do
+    local child_tr = reaper.GetTrack(0, parent_idx + j)
+    if child_tr then
+      if j == #child_tracks then
+        reaper.SetMediaTrackInfo_Value(child_tr, "I_FOLDERDEPTH", -1)
+      else
+        reaper.SetMediaTrackInfo_Value(child_tr, "I_FOLDERDEPTH", 0)
+      end
+    end
+  end
+
+  return parent_idx + 1 + #child_tracks
+end
+
+function Actions.btn_automacao()
+  local choice = reaper.ShowMessageBox("Deseja prosseguir com a automação de organização de faixas?", "Confirmação", 4)
+  if choice ~= 6 then return end
+
+  reaper.Undo_BeginBlock()
+
+  local current_insert_idx = 0
+
+  -- 1. Cria a pasta CLICK no topo (índice 0)
+  current_insert_idx = criar_pasta_no_topo("CLICK", { "CLICK", "METRONOMO", "METRO", "BEAT", "COUNT" }, current_insert_idx)
+
+  -- 2. Cria a pasta BASS logo na sequência
+  current_insert_idx = criar_pasta_no_topo("BASS", { "BASS", "BAIXO", "SUB" }, current_insert_idx)
+
+  -- 3. Cria a pasta DRUMS logo na sequência
+  current_insert_idx = criar_pasta_no_topo("DRUMS", { "DRUM", "DRUMS", "BATERIA", "BAT", "KICK", "SNARE", "HIHAT", "TOM" }, current_insert_idx)
+
+  -- 4. Cria a pasta VOZ REFERÊNCIA logo na sequência
+  current_insert_idx = criar_pasta_no_topo("VOZ REFERÊNCIA", { "VOZ REFERENCIA", "VOZ GUIA", "VOZ" }, current_insert_idx)
+
+  reaper.Undo_EndBlock("Automação de Organização de Faixas (CLICK, BASS, DRUMS, VOZ REFERÊNCIA)", -1)
+  reaper.UpdateTimeline()
+
+  reaper.ShowMessageBox("Automação de faixas (CLICK, BASS, DRUMS, VOZ REFERÊNCIA) concluída com sucesso!", "Sucesso", 0)
+end
+
+function Actions.criar_regioes_dos_markers()
+  local ReaperData = require("modules.reaper_data")
+  reaper.Undo_BeginBlock()
+
+  -- 1. Coleta todos os markers do projeto ativo (preservando posição, nome e cor)
+  local _, num_markers, num_regions = reaper.CountProjectMarkers(0)
+  local total = num_markers + num_regions
+  local markers = {}
+
+  for i = 0, total - 1 do
+    local retval, isrgn, pos, rgnend, name, markrgnindexnumber, color = reaper.EnumProjectMarkers3(0, i)
+    if retval > 0 and not isrgn then
+      table.insert(markers, {
+        pos = pos,
+        name = name or "",
+        color = color or 0
+      })
+    end
+  end
+
+  -- Ordena os markers cronologicamente pela posição no tempo
+  table.sort(markers, function(a, b) return a.pos < b.pos end)
+
+  if #markers < 1 then
+    reaper.ShowMessageBox("É necessário ter pelo menos 1 marker no projeto para criar as regiões.", "Markers -> Regiões", 0)
+    return
+  end
+
+  -- 2. Limpa as regiões já existentes
+  for i = total - 1, 0, -1 do
+    local retval, isrgn, pos, rgnend, name, markrgnindexnumber = reaper.EnumProjectMarkers3(0, i)
+    if retval > 0 and isrgn then
+      reaper.DeleteProjectMarker(0, markrgnindexnumber, true)
+    end
+  end
+
+  -- 3. Cria as novas regiões entre markers (o último marker vai até o final do projeto)
+  local proj_len = reaper.GetProjectLength(0)
+
+  for i = 1, #markers do
+    local start_pos = markers[i].pos
+    local end_pos
+
+    if i < #markers then
+      end_pos = markers[i+1].pos
+    else
+      if proj_len > start_pos then
+        end_pos = proj_len
+      else
+        end_pos = start_pos + 30
+      end
+    end
+
+    local rgn_name = markers[i].name
+    local rgn_color = markers[i].color
+    
+    if end_pos > start_pos then
+      reaper.AddProjectMarker2(0, true, start_pos, end_pos, rgn_name, -1, rgn_color)
+    end
+  end
+
+  reaper.Undo_EndBlock("Criar Regiões a partir dos Markers", -1)
+  reaper.UpdateTimeline()
+
+  -- 4. Coleta a track INFORMAÇÃO VISUAL para exportação do TXT
+  local tr_info = ReaperData.encontrarTrackInfoVisual()
+  if not tr_info and reaper.CountTracks(0) > 0 then
+    tr_info = reaper.GetTrack(0, 0)
+  end
+
+  -- 5. Salva o arquivo MapaTrackNJB.txt no formato exatamente solicitado
+  local proj_dir = reaper.GetProjectPath()
+  if not proj_dir or proj_dir == "" then
+    local _, proj_path = reaper.EnumProjects(-1, "")
+    if proj_path and proj_path ~= "" then
+      proj_dir = proj_path:match("(.*[\\/])")
+    end
+  end
+
+  local saved_path = nil
+  if proj_dir and proj_dir ~= "" then
+    if not proj_dir:match("[\\/]$") then
+      proj_dir = proj_dir .. "\\"
+    end
+    local file_path = proj_dir .. "MapaTrackNJB.txt"
+    local f = io.open(file_path, "w")
+    if f then
+      for i, m in ipairs(markers) do
+        local info_txt = obter_info_visual_no_pos(tr_info, m.pos)
+        local total_ms = math.floor(m.pos * 1000)
+        local min = math.floor(total_ms / 60000)
+        local rem_ms = total_ms % 60000
+        local sec = math.floor(rem_ms / 1000)
+        local ms = rem_ms % 1000
+        local time_str = string.format("%02d%02d%03d", min, sec, ms)
+
+        f:write("Informação Visual\n")
+        f:write(info_txt .. "\n\n")
+        f:write(m.name .. "\n")
+        f:write(time_str .. "\n")
+        if i < #markers then
+          f:write("\n")
+        end
+      end
+      f:close()
+      saved_path = file_path
+    end
+  end
+
+  -- 6. Recarrega as regiões no Painel Touch
+  ReaperData.carregarRegioes()
+
+  -- 7. Exibe o alerta de sucesso
+  if saved_path then
+    reaper.ShowMessageBox("Regiões criadas e exportadas para:\n" .. saved_path, "Sucesso", 0)
+  else
+    reaper.ShowMessageBox("Regiões criadas com sucesso!", "Sucesso", 0)
+  end
+end
+
 function Actions.init_shortcuts()
   local main_path = reaper.GetResourcePath() .. "/Scripts/Painel Touch"
   local shortcuts_dir = main_path .. "/modules/shortcuts"
@@ -397,7 +702,7 @@ function Actions.init_shortcuts()
   State.shortcut_cmds = {}
   
   local buttons_id = {
-    "btn1", "btn2", "btn3", "btn4", "btn5", "btn6", "btn7", "btn8", "btn_curta", "btn_pedal", "btn9", "btn10", "btn11"
+    "btn1", "btn2", "btn3", "btn4", "btn5", "btn6", "btn7", "btn8", "btn_curta", "btn_pedal", "btn9", "btn10", "btn11", "btn12", "btn13"
   }
   
   for i, id in ipairs(buttons_id) do
@@ -450,6 +755,10 @@ function Actions.trigger_button_by_id(id)
   elseif id == "btn11" then
     local cmd = reaper.NamedCommandLookup("_SWS_PROJLISTSOPEN")
     if cmd and cmd > 0 then reaper.Main_OnCommand(cmd, 0) end
+  elseif id == "btn12" then
+    Actions.criar_regioes_dos_markers()
+  elseif id == "btn13" then
+    Actions.btn_automacao()
   end
 end
 
@@ -460,7 +769,7 @@ function Actions.tick()
   -- Poll shortcuts
   if State.shortcut_cmds then
     local buttons_id = {
-      "btn1", "btn2", "btn3", "btn4", "btn5", "btn6", "btn7", "btn8", "btn_curta", "btn_pedal", "btn9", "btn10", "btn11"
+      "btn1", "btn2", "btn3", "btn4", "btn5", "btn6", "btn7", "btn8", "btn_curta", "btn_pedal", "btn9", "btn10", "btn11", "btn12", "btn13"
     }
     for _, id in ipairs(buttons_id) do
       local val = reaper.GetExtState("PainelTouchShortcuts", "trigger_" .. id)

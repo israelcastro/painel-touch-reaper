@@ -522,6 +522,10 @@ function Gui.Loop()
     Gui.ImGui_ButtonTouch(State.ctx, "btn10", "SALVAR", largura_repertorio, altura_repertorio, State.cor_botao_padrao, State.cor_amarelo, function() reaper.Main_OnCommand(reaper.NamedCommandLookup("_SWS_PROJLISTSAVE"), 0) end)
     reaper.ImGui_SameLine(State.ctx, nil, padding_repertorio)
     Gui.ImGui_ButtonTouch(State.ctx, "btn11", "ABRIR",  largura_repertorio, altura_repertorio, State.cor_botao_padrao, State.cor_amarelo, function() reaper.Main_OnCommand(reaper.NamedCommandLookup("_SWS_PROJLISTSOPEN"), 0) end)
+    reaper.ImGui_SameLine(State.ctx, nil, padding_repertorio)
+    Gui.ImGui_ButtonTouch(State.ctx, "btn12", "MARKERS ➔ REGIÕES", 180, altura_repertorio, State.cor_botao_padrao, State.cor_amarelo, Actions.criar_regioes_dos_markers)
+    reaper.ImGui_SameLine(State.ctx, nil, padding_repertorio)
+    Gui.ImGui_ButtonTouch(State.ctx, "btn13", "AUTOMAÇÃO", 140, altura_repertorio, State.cor_botao_padrao, State.cor_amarelo, Actions.btn_automacao)
 
     reaper.ImGui_End(State.ctx)
   end
