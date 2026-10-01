@@ -105,25 +105,44 @@ function Gui.Loop()
       reaper.ImGui_PushStyleColor(State.ctx, reaper.ImGui_Col_Button(), cor_modo_dois)
       reaper.ImGui_PushStyleColor(State.ctx, reaper.ImGui_Col_ButtonHovered(), cor_modo_dois)
       reaper.ImGui_PushStyleColor(State.ctx, reaper.ImGui_Col_ButtonActive(), cor_modo_dois)
-      if reaper.ImGui_Button(State.ctx, State.usar_dois_cliques and "Modo: Dois Cliques (Ativo)" or "Modo: Dois Cliques (Desativo)", 300, 30) then
+      if reaper.ImGui_Button(State.ctx, State.usar_dois_cliques and "Modo: Dois Cliques (Ativo)" or "Modo: Dois Cliques (Desativo)", 240, 30) then
         State.usar_dois_cliques = not State.usar_dois_cliques; State.salvar_config()
       end
       reaper.ImGui_PopStyleColor(State.ctx, 3)
     end
-    reaper.ImGui_SameLine(State.ctx, nil, 20)
+    reaper.ImGui_SameLine(State.ctx, nil, 15)
     do
       local cor_modo_touch = State.modo_tela_touch and State.cor_verde or State.cor_botao_padrao
       reaper.ImGui_PushStyleColor(State.ctx, reaper.ImGui_Col_Button(), cor_modo_touch)
       reaper.ImGui_PushStyleColor(State.ctx, reaper.ImGui_Col_ButtonHovered(), cor_modo_touch)
       reaper.ImGui_PushStyleColor(State.ctx, reaper.ImGui_Col_ButtonActive(), cor_modo_touch)
-      if reaper.ImGui_Button(State.ctx, State.modo_tela_touch and "Modo: Tela Touch (Ativo)" or "Modo: Tela Touch (Desativo)", 300, 30) then
+      if reaper.ImGui_Button(State.ctx, State.modo_tela_touch and "Modo: Tela Touch (Ativo)" or "Modo: Tela Touch (Desativo)", 240, 30) then
         State.modo_tela_touch = not State.modo_tela_touch; State.salvar_config()
       end
       reaper.ImGui_PopStyleColor(State.ctx, 3)
     end
+    reaper.ImGui_SameLine(State.ctx, nil, 15)
+    do
+      local cor_video_led = State.video_led_ativo and State.cor_verde or State.cor_botao_padrao
+      reaper.ImGui_PushStyleColor(State.ctx, reaper.ImGui_Col_Button(), cor_video_led)
+      reaper.ImGui_PushStyleColor(State.ctx, reaper.ImGui_Col_ButtonHovered(), cor_video_led)
+      reaper.ImGui_PushStyleColor(State.ctx, reaper.ImGui_Col_ButtonActive(), cor_video_led)
+      if reaper.ImGui_Button(State.ctx, State.video_led_ativo and "Vídeo LED (Ativo)" or "Vídeo LED (Desativo)", 240, 30) then
+        State.video_led_ativo = not State.video_led_ativo; State.salvar_config()
+        if not State.video_led_ativo then
+          Actions.show_reaper_video_window(true)
+        end
+      end
+      reaper.ImGui_PopStyleColor(State.ctx, 3)
+    end
 
-    local largura, altura, padding = 140, 100, 10
+    local num_botoes = State.sos_ativo and 11 or 10
+    local padding = 8
+    local avail_w = reaper.ImGui_GetContentRegionAvail(State.ctx)
+    local largura = math.max(60, math.floor((avail_w - ((num_botoes - 1) * padding)) / num_botoes))
+    local altura = 100
     local cor_hover_sup = State.cor_amarelo
+
     Gui.ImGui_ButtonTouch(State.ctx, "btn1", "PLAY/STOP", largura, altura, State.cor_botao_padrao, cor_hover_sup, Actions.btn_play_stop); reaper.ImGui_SameLine(State.ctx, nil, padding)
     do
       local c = State.hold_ativo and State.cor_verde or State.cor_botao_padrao
@@ -132,7 +151,7 @@ function Gui.Loop()
     reaper.ImGui_SameLine(State.ctx, nil, padding)
     do
       local c = State.autoplay_ativo and State.cor_verde or State.cor_botao_padrao
-      Gui.ImGui_ButtonTouch(State.ctx, "btn3", "AUTO PLAY", largura, altura, c, cor_hover_sup, Actions.btn_alerta_autoplay)
+      Gui.ImGui_ButtonTouch(State.ctx, "btn3", "AUTO\nPLAY", largura, altura, c, cor_hover_sup, Actions.btn_alerta_autoplay)
     end
     reaper.ImGui_SameLine(State.ctx, nil, padding)
     Gui.ImGui_ButtonTouch(State.ctx, "btn4", "ANTERIOR", largura, altura, State.cor_botao_padrao, cor_hover_sup, Actions.btn_anterior); reaper.ImGui_SameLine(State.ctx, nil, padding)
@@ -147,7 +166,7 @@ function Gui.Loop()
       local c_verm = reaper.ImGui_ColorConvertDouble4ToU32(1, 0.2, 0.2, 1)
       local c_dour = reaper.ImGui_ColorConvertDouble4ToU32(1.00, 1.00, 0.30, 0.9)
       local c_normal = (State.botao2_ativo and (math.floor(os.clock() * 4) % 2 == 0)) and c_dour or c_verm
-      Gui.ImGui_ButtonTouch(State.ctx, "btn7", "SOMENTE CLICK", largura, altura, c_normal, State.cor_amarelo, function()
+      Gui.ImGui_ButtonTouch(State.ctx, "btn7", "SOMENTE\nCLICK", largura, altura, c_normal, State.cor_amarelo, function()
         Actions.toggle_somente_click()
       end)
     end
@@ -162,7 +181,7 @@ function Gui.Loop()
       end
       local muteState = track_vocal and reaper.GetMediaTrackInfo_Value(track_vocal, "B_MUTE") or 0
       local c = muteState == 1 and State.cor_vermelho or State.cor_verde
-      Gui.ImGui_ButtonTouch(State.ctx, "btn8", "VOCAL REFERÊNCIA", largura, altura, c, cor_hover_sup, function()
+      Gui.ImGui_ButtonTouch(State.ctx, "btn8", "VOCAL\nREFERÊNCIA", largura, altura, c, cor_hover_sup, function()
         if track_vocal then
           reaper.SetMediaTrackInfo_Value(track_vocal, "B_MUTE", muteState == 0 and 1 or 0)
         end
@@ -175,7 +194,7 @@ function Gui.Loop()
       
       -- reaper.ImGui_SameLine(State.ctx, nil, padding)
       local c_curta = State.versao_curta_ativo and State.cor_verde or State.cor_botao_padrao
-      Gui.ImGui_ButtonTouch(State.ctx, "btn_curta", "VERSÃO CURTA", largura, altura, c_curta, cor_hover_sup, function()
+      Gui.ImGui_ButtonTouch(State.ctx, "btn_curta", "VERSÃO\nCURTA", largura, altura, c_curta, cor_hover_sup, function()
         State.versao_curta_ativo = not State.versao_curta_ativo
       end)
       
@@ -330,7 +349,7 @@ function Gui.Loop()
     reaper.ImGui_DrawList_AddRectFilled(draw_list, pos_x, pos_y, pos_x + canvas_width, pos_y + canvas_height, State.cor_preto)
 
     local tocando = reaper.GetPlayPosition()
-    local is_playing = reaper.GetPlayState() & 1 == 1
+    local is_playing = (reaper.GetPlayState() & 1 == 1)
 
     if (not State.visao_completa) and State.auto_scroll_grupos and State.seguir_reproducao and #State.grupos > 0 then
       local g = State.grupos[State.idx_grupo_atual]
@@ -392,10 +411,8 @@ function Gui.Loop()
         if tocando >= (ultima.rgnend - 0.3) and tocando < ultima.rgnend then
           if State.autoplay_ativo then
             local current_blocks = Actions.is_autoplay_blocked_for_project(current_project_id)
-            local next_proj = Actions.get_next_project(current_project_id)
-            local next_blocks = next_proj and Actions.is_autoplay_blocked_for_project(next_proj) or false
             
-            if current_blocks or next_blocks then
+            if current_blocks then
               reaper.Main_OnCommand(40861, 0)
               reaper.defer(function() reaper.SetEditCurPos(0, true, false) end)
             else
@@ -437,7 +454,7 @@ function Gui.Loop()
 
         local is_tocando_reg = regiao_tocando_id == id
         local is_clicada = State.regiao_clicada_id == id
-        local tocando_flag = reaper.GetPlayState() & 1 == 1
+        local tocando_flag = (reaper.GetPlayState() & 1 == 1)
 
         local piscar = (is_tocando_reg or is_clicada) and tocando_flag and blink_on_region
         local mostrar_vermelho_solido = is_clicada and not tocando_flag

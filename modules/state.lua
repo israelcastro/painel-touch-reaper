@@ -72,6 +72,9 @@ State.seguir_reproducao = true
 State.duracao = 10
 State.waveform = {}
 
+State.video_led_ativo = true
+State.vs_project = nil
+
 -- Config persistence
 local config_path = reaper.GetResourcePath() .. "/Scripts/painel_config.ini"
 function State.salvar_config()
@@ -82,6 +85,7 @@ function State.salvar_config()
     f:write("hold_ativo=" .. (State.hold_ativo and "1" or "0") .. "\n")
     f:write("autoplay_ativo=" .. (State.autoplay_ativo and "1" or "0") .. "\n")
     f:write("visao_completa=" .. (State.visao_completa and "1" or "0") .. "\n")
+    f:write("video_led_ativo=" .. (State.video_led_ativo and "1" or "0") .. "\n")
     f:close()
   end
 end
@@ -96,6 +100,7 @@ function State.carregar_config()
       elseif key == "hold_ativo" then State.hold_ativo = (val == "1")
       elseif key == "autoplay_ativo" then State.autoplay_ativo = (val == "1")
       elseif key == "visao_completa" then State.visao_completa = (val == "1")
+      elseif key == "video_led_ativo" then State.video_led_ativo = (val == "1")
       end
     end
     f:close()

@@ -2,9 +2,47 @@
 local State = require("modules.state")
 local Actions = {}
 
+local function find_reaper_video_window()
+  if reaper.JS_Window_Find then
+    local hwnd = reaper.JS_Window_Find("Video Window", true)
+    if hwnd then return hwnd end
+    hwnd = reaper.JS_Window_Find("Janela de Vídeo", true)
+    if hwnd then return hwnd end
+    hwnd = reaper.JS_Window_FindChild(reaper.GetMainHwnd(), "Video Window", false)
+    if hwnd then return hwnd end
+  end
+  return nil
+end
+
+function Actions.show_reaper_video_window(show)
+  local video_win_state = reaper.GetToggleCommandState(50125) -- 1 = Open, 0 = Closed
+  local hwnd = find_reaper_video_window()
+
+  if show then
+    if video_win_state == 0 then
+      reaper.Main_OnCommand(50125, 0) -- Open if closed
+    elseif hwnd and reaper.JS_Window_Show then
+      reaper.JS_Window_Show(hwnd, "SHOWNA")
+      if reaper.JS_Window_SetZOrder then
+        reaper.JS_Window_SetZOrder(hwnd, "TOP", nil)
+      end
+    end
+  else
+    if hwnd and reaper.JS_Window_Show then
+      reaper.JS_Window_Show(hwnd, "HIDE")
+    elseif video_win_state == 1 then
+      reaper.Main_OnCommand(50125, 0) -- Close if open
+    end
+  end
+end
+
 function Actions.btn_play_stop()
   local state = reaper.GetPlayState()
-  if state & 1 == 1 then reaper.Main_OnCommand(1016, 0) else reaper.Main_OnCommand(1007, 0) end
+  if state & 1 == 1 then
+    reaper.Main_OnCommand(1016, 0) -- Stop
+  else
+    reaper.Main_OnCommand(1007, 0) -- Play
+  end
 end
 
 function Actions.btn_pedal()
@@ -100,6 +138,13 @@ function Actions.toggle_somente_click(force_val)
 end
 
 function Actions.instant_jump(target_pos, target_id)
+  local vs_proj = Actions.get_active_vs_project()
+  if vs_proj then
+    local curr_proj = reaper.EnumProjects(-1, "")
+    if curr_proj ~= vs_proj then
+      reaper.SelectProjectInstance(vs_proj)
+    end
+  end
   if target_id then State.regiao_clicada_id = target_id end
   reaper.SetEditCurPos(target_pos, true, true)
 end
@@ -257,11 +302,10 @@ function Actions.trigger_troca()
     local next_proj = reaper.EnumProjects(curr_idx + 1, "")
     if next_proj then
       local current_blocks = Actions.is_autoplay_blocked_for_project(curr_proj)
-      local next_blocks = Actions.is_autoplay_blocked_for_project(next_proj)
       
       reaper.SelectProjectInstance(next_proj)
       reaper.SetEditCurPos(0, true, false)
-      if not current_blocks and not next_blocks then
+      if not current_blocks then
         if reaper.GetPlayState() & 1 == 0 then
           reaper.Main_OnCommand(1007, 0) -- Play
         end
@@ -762,9 +806,43 @@ function Actions.trigger_button_by_id(id)
   end
 end
 
+function Actions.has_video_track()
+  local count = reaper.CountTracks(0)
+  for i = 0, count - 1 do
+    local tr = reaper.GetTrack(0, i)
+    local _, name = reaper.GetSetMediaTrackInfo_String(tr, "P_NAME", "", false)
+    local name_norm = (name or ""):upper()
+    name_norm = name_norm:gsub("Ç","C"):gsub("Á","A"):gsub("Ã","A"):gsub("Â","A"):gsub("É","E"):gsub("Ê","E"):gsub("Í","I"):gsub("Ó","O"):gsub("Ô","O"):gsub("Ú","U")
+    
+    if name_norm:find("PAINEL DE LED", 1, true) or name_norm:find("PAINEL LED", 1, true) or name_norm:find("PAINEL_LED", 1, true) or name_norm:find("PAINEL", 1, true) then
+      local is_muted = reaper.GetMediaTrackInfo_Value(tr, "B_MUTE") == 1
+      local num_items = reaper.CountTrackMediaItems(tr)
+      if not is_muted and num_items > 0 then
+        return true, tr
+      end
+    end
+  end
+  return false, nil
+end
+
+function Actions.process_video_led()
+  if not State.video_led_ativo then return end
+
+  local has_video = Actions.has_video_track()
+  local play_state = reaper.GetPlayState()
+  local is_playing = (play_state & 1 == 1)
+
+  if has_video and is_playing then
+    Actions.show_reaper_video_window(true)
+  else
+    Actions.show_reaper_video_window(false)
+  end
+end
+
 function Actions.tick()
   Actions.process_fades()
   Actions.process_pad_fade()
+  Actions.process_video_led()
   
   -- Poll shortcuts
   if State.shortcut_cmds then

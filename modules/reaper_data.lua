@@ -8,7 +8,8 @@ function ReaperData.gerarWaveformFake(n)
   return wf
 end
 
-function ReaperData.montar_grupos_por_cor()
+function ReaperData.montar_grupos_por_cor(proj)
+  proj = proj or 0
   State.grupos = {}
   if not State.regioes or #State.regioes == 0 then return end
   table.sort(State.regioes, function(a,b) return a.pos < b.pos end)
@@ -28,7 +29,7 @@ function ReaperData.montar_grupos_por_cor()
   end
   State.grupos[#State.grupos+1] = {ini=g_ini, fim=g_fim, color=g_color}
 
-  local playpos = reaper.GetPlayPosition()
+  local playpos = reaper.GetPlayPosition2Ex and reaper.GetPlayPosition2Ex(proj) or reaper.GetPlayPosition()
   local novo = 1
   for i, g in ipairs(State.grupos) do
     if playpos >= g.ini - 1e-6 and playpos < g.fim - 1e-6 then
@@ -39,25 +40,27 @@ function ReaperData.montar_grupos_por_cor()
   State.idx_grupo_atual = novo
 end
 
-function ReaperData.carregarRegioes()
+function ReaperData.carregarRegioes(proj)
+  proj = proj or 0
   State.regioes = {}
-  local _, num_markers, num_regions = reaper.CountProjectMarkers(0)
+  local _, num_markers, num_regions = reaper.CountProjectMarkers(proj)
   State.duracao = 10
   for i = 0, num_markers + num_regions - 1 do
-    local retval, isrgn, pos, rgnend, name, idx, color = reaper.EnumProjectMarkers3(0, i)
+    local retval, isrgn, pos, rgnend, name, idx, color = reaper.EnumProjectMarkers3(proj, i)
     if retval and isrgn then
       State.regioes[#State.regioes+1] = {pos=pos, rgnend=rgnend, name=name or "", color=color or 0}
       if rgnend > State.duracao then State.duracao = rgnend end
     end
   end
-  ReaperData.montar_grupos_por_cor()
+  ReaperData.montar_grupos_por_cor(proj)
 end
 
-function ReaperData.encontrarTrackInfoVisual()
+function ReaperData.encontrarTrackInfoVisual(proj)
+  proj = proj or 0
   local alvo = State.nome_track_info_visual:upper()
   alvo = alvo:gsub("Ç","C"):gsub("Á","A"):gsub("Ã","A"):gsub("Â","A"):gsub("É","E"):gsub("Ê","E"):gsub("Í","I"):gsub("Ó","O"):gsub("Ô","O"):gsub("Ú","U")
-  for i = 0, reaper.CountTracks(0) - 1 do
-    local tr = reaper.GetTrack(0, i)
+  for i = 0, reaper.CountTracks(proj) - 1 do
+    local tr = reaper.GetTrack(proj, i)
     local _, name = reaper.GetSetMediaTrackInfo_String(tr, "P_NAME", "", false)
     local n = (name or ""):upper()
     n = n:gsub("Ç","C"):gsub("Á","A"):gsub("Ã","A"):gsub("Â","A"):gsub("É","E"):gsub("Ê","E"):gsub("Í","I"):gsub("Ó","O"):gsub("Ô","O"):gsub("Ú","U")
@@ -66,9 +69,10 @@ function ReaperData.encontrarTrackInfoVisual()
   return nil
 end
 
-function ReaperData.coletarItensInfoVisual()
+function ReaperData.coletarItensInfoVisual(proj)
+  proj = proj or 0
   local itens = {}
-  local tr = ReaperData.encontrarTrackInfoVisual()
+  local tr = ReaperData.encontrarTrackInfoVisual(proj)
   if not tr then return itens end
   local itemCount = reaper.CountTrackMediaItems(tr)
   for i = 0, itemCount - 1 do
